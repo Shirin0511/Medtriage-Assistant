@@ -32,8 +32,8 @@ def download_and_clean():
         if question and answer and len(answer)>20:
             cleaned.append(
                 {
-                    "Question":question,
-                    "Answer" : answer
+                    "question":question,
+                    "answer" : answer
                 }
             ) 
 
