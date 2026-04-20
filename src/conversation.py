@@ -15,20 +15,20 @@ class ConversationState:
 
 
     #patients symptoms
-    sympotms = List[str] = field(default_factory=list)
+    symptoms : List[str] = field(default_factory=list)
 
     #how long has the patient had those symptoms
-    duration = Optional[str] = None
+    duration : Optional[str] = None
 
     #how severe the symptoms are on a scale of 1-10
-    severity = Optional[str] = None
+    severity : Optional[str] = None
 
     #any pre-existing conditions like diabetes, low/high BP
-    conditions = Optional[str] = None
+    conditions : Optional[str] = None
 
     # Full chat history — list of {"role": "user"/"assistant", "content": "..."}
     # This gets sent to the LLM so it has full context of the conversation
-    history = List[str] = field(default_factory=list)
+    history :List[str] = field(default_factory=list)
 
     #this will tell us what question to ask next
     turn : int = 0
@@ -102,20 +102,20 @@ def process_turn(state: ConversationState, user_msg: str):
     if state.turn == 0:
         
         # First message from user — treat it as their symptom description
-        state.sympotms.append(user_msg)
-        bot_resposne = FOLLOWUP_QUESTIONS[0] # ask "how long?"
+        state.symptoms.append(user_msg)
+        bot_response = FOLLOWUP_QUESTIONS[0] # ask "how long?"
 
     elif state.turn == 1:
         
         # User answered the duration question
         state.duration = user_msg
-        bot_resposne = FOLLOWUP_QUESTIONS[1] # ask "how severe?"
+        bot_response = FOLLOWUP_QUESTIONS[1] # ask "how severe?"
 
     elif state.turn ==2:
        
         # User answered the severity question
         state.severity = user_msg
-        bot_resposne = FOLLOWUP_QUESTIONS[2]  # ask about conditions?
+        bot_response = FOLLOWUP_QUESTIONS[2]  # ask about conditions?
 
     elif state.turn ==3:
 
@@ -170,8 +170,8 @@ def build_rag_query( state: ConversationState) -> str:
 
     query_parts= []
 
-    if state.sympotms:
-        query_parts.append(f"Symptoms : {' '.join(state.sympotms)}")
+    if state.symptoms:
+        query_parts.append(f"Symptoms : {' '.join(state.symptoms)}")
 
     if state.duration:
         query_parts.append(f"Duration : {state.duration}")
@@ -194,7 +194,7 @@ def get_conversation_summary(state: ConversationState) -> dict:
     """
 
     return {
-        "Symptoms" : state.sympotms,
+        "Symptoms" : state.symptoms,
         "Duration" : state.duration,
         "Severity" : state.severity,
         "Pre-existing Conditions" : state.conditions,
