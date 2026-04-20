@@ -197,7 +197,7 @@ def get_conversation_summary(state: ConversationState) -> dict:
         "symptoms" : state.symptoms,
         "duration" : state.duration,
         "severity" : state.severity,
-        "pre-existing conditions" : state.conditions,
+        "pre_existing_conditions" : state.conditions,
         "Turn" : state.turn,
         "Trigger Triage" : state.trigger_triage
     }

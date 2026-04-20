@@ -13,7 +13,7 @@ load_dotenv()
 
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
-MODEL = "llama3-8b-8192"
+MODEL = "llama-3.1-8b-instant"
 
 SYSTEM_PROMPT = """You are MedTriage, a medical symptom triage assistant.
 
@@ -78,7 +78,10 @@ def call_groq(messages: list, system_prompt: str = SYSTEM_PROMPT) -> str:
 
     # If Groq returns an error (e.g. invalid key, rate limit)
     # raise_for_status() will throw an exception with the error details
-    response.raise_for_status()
+    if not response.ok:
+        print("Groq API Error:", response.status_code)
+        print("Error details:", response.json())
+        response.raise_for_status()
 
     data = response.json()
 
@@ -121,7 +124,7 @@ def generate_triage_response(conversation_summary : dict, conversation_history: 
     symptoms_text = " ".join(conversation_summary.get("symptoms",[]))
     duration = conversation_summary.get("duration","not specified")
     severity = conversation_summary.get("severity", "not specified")
-    conditions = conversation_summary.get("pre-existing conditions","not specified")    
+    conditions = conversation_summary.get("pre_existing_conditions","not specified")    
 
 
     # --- Step 3: Build the triage prompt ---
@@ -187,11 +190,11 @@ if __name__ == "__main__":
     # Simulate what Phase 3 would return
     test_rag_results = [
         {
-            "matched_question": "What are the symptoms of Q Fever?",
+            "question": "What are the symptoms of Q Fever?",
             "answer": "Q fever can cause high fevers up to 104-105F, severe headache, general malaise, myalgia, chills and sweats."
         },
         {
-            "matched_question": "What is the outlook for Headache?",
+            "question": "What is the outlook for Headache?",
             "answer": "Not all headaches require medical attention. Sudden severe headache or headache with fever may signal serious conditions."
         }
     ]
@@ -208,7 +211,7 @@ if __name__ == "__main__":
     ]
 
     # Generate the triage report
-    result = generate_triage_response(test_summary, test_rag_results, test_history)
+    result = generate_triage_response(test_summary, test_history, test_rag_results)
 
     print("=== TRIAGE REPORT ===\n")
     print(result)
