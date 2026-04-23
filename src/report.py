@@ -38,7 +38,7 @@ class TriageReport(BaseModel):
     symptoms: list[str]
     duration: str
     severity: str
-    conditions: str
+    pre_existing_conditions: str
 
     # UrgencyLevel enum - only LOW/MODERATE/HIGH/EMERGENCY are valid
     urgency: UrgencyLevel
@@ -303,7 +303,7 @@ def build_report(llm_response:str, conversation_summary:dict, rag_results:list) 
 
     report = TriageReport(
         timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-        symptoms = conversation_summary.get("summary",[]),
+        symptoms = conversation_summary.get("symptoms",[]),
         duration = conversation_summary.get("duration","not specified"),
         severity = conversation_summary.get("severity","not specified"),
         pre_existing_conditions = conversation_summary.get("pre_existing_conditions","none"),
