@@ -176,7 +176,7 @@ def parse_see_doctor_if(llm_response: str) -> List[str]:
 
     flags = []
     in_section = False
-    lines = llm_response.split("/n")
+    lines = llm_response.split("\n")
 
     for line in lines:
         line = line.strip()
