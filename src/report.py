@@ -121,5 +121,94 @@ def parse_urgency(llm_response:str) -> UrgencyLevel:
         # LLM didn't include a clear urgency level
         # Default to MODERATE — we never want to under-triage
         return UrgencyLevel.MODERATE
+
+
+def parse_possible_conditions(llm_response: str) -> List[str]:
+
+    """
+    Extracts the list of possible conditions from the LLM response.
+    Looks for the POSSIBLE CONDITIONS section and pulls out bullet points.
+    """       
+
+    lines = llm_response.split("\n")
+
+    conditions=[]
+
+    in_conditions_section= False
+
+    for line in lines:
+        line = line.strip()
+
+        # Detect when we enter the conditions section
+        if "POSSIBLE CONDITIONS" in line.upper():
+            in_conditions_section = True
+            continue
+
+        # Detect when we leave the conditions section
+        if in_conditions_section and line.upper().startswith(("RECOMMENDED","SEE A DOCTOR", "DISCLAIMER","URGENCY")):
+            break
+
+
+        # Extract bullet point lines inside the section
+        # Bullet points start with -, *, or a number like "1."
+        if in_conditions_section and line and (
+            line.startswith("-") or
+            line.startswith("*") or
+            (len(line)>2 and line[0].isdigit() and line[1] in '.)')
+        ):
+            # Remove the bullet character and clean up whitespace
+            condition = line.lstrip('-*•123456789.) ').strip()
+            if condition:
+                conditions.append(condition)
+
+    #Fallback
+    if not conditions:
+        conditions = ['Symptoms require professional medical evaluation']  
+
+    return conditions   
+
+def parse_see_doctor_if(llm_response: str) -> List[str]:
+
+    """
+    Extracts the red flag symptoms from the SEE A DOCTOR IF section.
+    Same pattern as parse_possible_conditions but for a different section.
+    """
+
+    flags = []
+    in_section = False
+    lines = llm_response.split("/n")
+
+    for line in lines:
+        line = line.strip()
+
+        if "SEE A DOCTOR" in line.upper():
+            in_section = True
+            continue
+
+        if in_section and line.upper().startswith(("DISCLAIMER", "RECOMMENDED", "URGENCY", "POSSIBLE")):
+            break
+
+        if in_section and line and (
+            line.startswith('-') or 
+            line.startswith('*') or
+            (len(line)>2 and line[0].isdigit and line[1] in '.)')
+        ) :
+            flag = line.lstrip('-*•123456789.) ').strip()
+            if flag:
+                flags.append(flag)
+
+
+    if not flags:
+        flags= ["Symptoms worsen significantly", "New symptoms develop"]
+
+    return flags            
+
+
+            
+
+
+
+
+     
      
     
