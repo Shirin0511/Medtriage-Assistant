@@ -201,7 +201,216 @@ def parse_see_doctor_if(llm_response: str) -> List[str]:
     if not flags:
         flags= ["Symptoms worsen significantly", "New symptoms develop"]
 
-    return flags            
+    return flags    
+
+
+def parse_recommended_action(llm_response: str) -> str:
+
+    """
+    Extracts the recommended action text from the LLM response.
+    Returns everything between RECOMMENDED ACTION and the next section.
+    """
+     
+    lines = llm_response.split("\n")
+    in_section = False
+    action_lines = []
+
+    for line in lines:
+        line= line.strip()
+
+        if "RECOMMENDED ACTION" in line.upper():
+            in_section = True
+            continue
+         
+        if in_section and line.upper().startswith(("SEE A DOCTOR", "DISCLAIMER", "POSSIBLE", "URGENCY")):
+            break
+         
+        
+        if in_section and line:
+            action_lines.append(line) 
+
+    if action_lines:
+        return " ".join(action_lines)
+
+    return "Please consult a healthcare professional for proper evaluation."
+
+
+# Checking how relevant were the RAG results?
+
+def calculate_confidence(
+        rag_results : list,
+        conversation_summary : dict
+) -> float:
+    
+    """
+    Calculates a confidence score between 0.0 and 1.0.
+    
+    This is a heuristic (rule-based estimate), not a precise ML score.
+    It measures how well the retrieved medical knowledge matches
+    the user's reported symptoms.
+    
+    Higher score = RAG found more relevant results = more confident report
+    """
+
+    if not rag_results:
+        return 0.1 # no results = very low confidence
+    
+    score= 0.0
+
+    # Each result contributes up to 0.25 to the score
+    score += min(len(rag_results) * 0.25, 0.75)
+
+    # Bonus: check if symptom keywords appear in the matched questions
+    # This means the RAG found truly relevant content, not just similar-sounding text
+    symptoms_text = " ".join(conversation_summary.get("summary",[])).lower()
+    symptoms_words = set(symptoms_text.split())
+
+    matched_keywords = 0
+    for result in rag_results:
+        matched_q = result.get("question","").lower()
+        # Count how many symptom words appear in the matched question
+        for word in symptoms_words:
+            if len(word)>3 and word in matched_q:
+                matched_keywords+=1
+
+    # Each keyword match adds a small bonus, capped at 0.25
+    keyword_score = min(matched_keywords*0.05, 0.25)      
+    score+=keyword_score
+
+    return min(round(score,2),1.0)
+
+
+#Main Report Builder
+
+def build_report(llm_response:str, conversation_summary:dict, rag_results:list) -> TriageReport:
+
+    """
+    Takes the raw LLM response + collected data and builds
+    a fully validated TriageReport Pydantic object.
+    
+    If any field fails validation, Pydantic raises a clear error.
+    """
+
+    # Parse each section of the LLM response
+    urgency = parse_urgency(llm_response)
+    conditions = parse_possible_conditions(llm_response)
+    see_doctor_if = parse_see_doctor_if(llm_response)
+    recommended_action = parse_recommended_action(llm_response)
+    confidence = calculate_confidence(rag_results, conversation_summary)
+
+    # Build and return the validated Pydantic object
+    # Pydantic validates ALL fields automatically when this is called
+
+    report = TriageReport(
+        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        symptoms = conversation_summary.get("summary",[]),
+        duration = conversation_summary.get("duration","not specified"),
+        severity = conversation_summary.get("severity","not specified"),
+        pre_existing_conditions = conversation_summary.get("pre_existing_conditions","none"),
+        urgency=urgency,
+        possible_conditions=conditions,
+        recommended_action=recommended_action,
+        see_doctor_if=see_doctor_if,
+        confidence_score=confidence,
+        raw_llm_response=llm_response
+    )
+
+    return report
+
+def export_report(report: TriageReport, output_dir: str= "data/processed")-> str:
+    """
+    Exports the triage report as a JSON file.
+    This is the "downloadable report" feature of the app.
+    
+    Returns the path to the saved file.
+    """
+
+    os.makedirs(output_dir, exist_ok=True)
+
+    # Use timestamp in filename so reports don't overwrite each other
+
+    filename = f"triage_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+    filepath = os.path.join(output_dir, filename)
+
+    # model_dump() converts the Pydantic object to a plain Python dict
+    # Then json.dump() writes it to a file
+    with open(filepath, "w") as f:
+        json.dump(report.model_dump(), f, indent=2)
+
+    print(f"Report saved to {filepath}")
+    return filepath
+
+
+if __name__ == "__main__":
+
+    print("=== Testing Report Builder ===\n")
+
+    # Simulate a realistic LLM response
+    sample_llm_response = """
+URGENCY LEVEL: MODERATE
+
+POSSIBLE CONDITIONS:
+- Symptoms may suggest a viral infection such as influenza
+- Could indicate a bacterial infection requiring medical attention
+- May suggest sinusitis given the combination of headache and fever
+
+RECOMMENDED ACTION:
+Visit a GP or urgent care clinic within 24 hours. Rest and stay hydrated
+in the meantime. Monitor your temperature regularly.
+
+SEE A DOCTOR IMMEDIATELY IF:
+- Fever rises above 103 degrees F or 39.4 degrees C
+- Headache becomes sudden and extremely severe
+- You develop difficulty breathing given your asthma history
+
+DISCLAIMER:
+This is not a medical diagnosis. Please consult a qualified healthcare professional.
+"""
+
+    sample_summary = {
+        "symptoms": ["bad headache and high fever"],
+        "duration": "2 days",
+        "severity": "7 out of 10",
+        "pre_existing_conditions": "mild asthma"
+    }
+    sample_rag = [
+        {"matched_question": "What are symptoms of fever and headache?",
+         "answer": "Fever and headache together may indicate viral or bacterial infection."},
+        {"matched_question": "When should I see a doctor for headache?",
+         "answer": "See a doctor if headache is severe or accompanied by high fever."}
+    ]
+
+    # Build the report
+    report = build_report(sample_llm_response, sample_summary, sample_rag)
+
+    # Print the validated report
+    print("=== VALIDATED TRIAGE REPORT ===\n")
+    print(f"Timestamp:      {report.timestamp}")
+    print(f"Urgency:        {report.urgency.value}")
+    print(f"Confidence:     {report.confidence_score}")
+    print(f"Symptoms:       {report.symptoms}")
+    print(f"Duration:       {report.duration}")
+    print(f"Severity:       {report.severity}")
+    print(f"Conditions:     {report.pre_existing_conditions}")
+    print(f"\nPossible Conditions:")
+    for c in report.possible_conditions:
+        print(f"  - {c}")
+    print(f"\nRecommended Action:\n  {report.recommended_action}")
+    print(f"\nSee Doctor If:")
+    for f in report.see_doctor_if:
+        print(f"  - {f}")
+    print(f"\nDisclaimer: {report.disclaimer}")
+
+    # Export to JSON
+    print("\n=== Exporting Report ===")
+    path = export_report(report)
+    print(f"Exported to: {path}")
+
+
+
+
+
+
 
 
             
