@@ -146,7 +146,7 @@ def process_turn(state: ConversationState, user_msg: str):
 
     state.history.append(
         {
-            "user" : "assistant",
+            "role" : "assistant",
             "content" : bot_response
         }
     )

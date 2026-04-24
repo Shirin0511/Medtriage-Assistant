@@ -46,7 +46,7 @@ def chat(user_message: str, history: list, state:dict) -> tuple:
         history.append({"role":"user","content":user_message})
         history.append({"role":"assistant","content":safety_result['response']})
 
-        return "", history, state, "", gr.update(visible=False)
+        return "", history, state, gr.update(value="",visible=False)
     
     #Process the turn through conversation manager
     convo_state, bot_response = process_turn(convo_state, user_message)
@@ -90,10 +90,10 @@ def chat(user_message: str, history: list, state:dict) -> tuple:
         state_dict = convo_state.__dict__.copy()
         state_dict['last_report'] = report.model_dump()
 
-        return "", history, state_dict, report_display, gr.update(visible=True)
+        return "", history, state_dict, gr.update(value=report_display, visible=True)
     
      # Not ready for triage yet — just return updated state
-    return "", history, convo_state.__dict__, "", gr.update(visible=False)
+    return "", history, convo_state.__dict__, gr.update(visible=False)
 
 
 
@@ -172,7 +172,7 @@ def reset_conversation():
     welcome = [
     {"role": "assistant", "content": "👋 Hello! I'm MedTriage, your symptom triage assistant.\n\nPlease describe your symptoms and I'll help you understand how urgently you need medical care.\n\n⚠️ Note: I am NOT a doctor. I cannot diagnose conditions or prescribe medications. For emergencies, call 112 immediately."}
 ]
-    return welcome, fresh_state.__dict__, "", gr.update(visible=False)
+    return welcome, fresh_state.__dict__, gr.update(visible=False)
 
 
 def get_initial_state():
@@ -281,21 +281,21 @@ def build_ui():
         msg_input.submit(
             fn=chat,
             inputs=[msg_input, chatbot, state],
-            outputs=[msg_input, chatbot, state, report_output, report_output]
+            outputs=[msg_input, chatbot, state, report_output]
         )
 
         # When user clicks Send button
         send_btn.click(
             fn=chat,
             inputs=[msg_input, chatbot, state],
-            outputs=[msg_input, chatbot, state, report_output, report_output]
+            outputs=[msg_input, chatbot, state, report_output]
         )
 
         # When user clicks New Consultation
         reset_btn.click(
             fn=reset_conversation,
             inputs=[],
-            outputs=[chatbot, state, report_output, report_output]
+            outputs=[chatbot, state, report_output]
         )
 
     return demo
