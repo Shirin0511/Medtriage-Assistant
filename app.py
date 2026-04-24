@@ -31,11 +31,12 @@ def chat(user_message: str, history: list, state:dict) -> tuple:
 
     #if user message is empty we should not process that
     if not user_message.strip():
-        return "", history, state, "", gr.update(visible=False)
+        return "", history, state, gr.skip()
     
 
     # Gradio stores state as a plain dict between calls, we need to reconstruct our ConversationState object from it
-    convo_state = ConversationState(**state)
+    state_clean = {k: v for k,v in state.items() if k!='last_report'}
+    convo_state = ConversationState(**state_clean)
 
     #Run safety checks
     safety_result = safety_check(user_message)
@@ -268,12 +269,12 @@ def build_ui():
                     elem_classes=["report-box"]
                 )
 
-                # Shown once report is generated
-                gr.Markdown(
-                    "Your triage report will appear here after "
-                    "the consultation is complete.",
-                    visible=True
-                )
+                #  Shown once report is generated
+                # gr.Markdown(
+                #     "Your triage report will appear here after "
+                #     "the consultation is complete.",
+                #     visible=True
+                # )
 
         # --- Wire up the events ---
         # Both pressing Enter in textbox AND clicking Send trigger chat()
