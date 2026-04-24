@@ -2,7 +2,7 @@ import gradio as gr
 import os
 from dotenv import load_dotenv
 from src.conversation import start_conversation, process_turn, build_rag_query, get_conversation_summary, ConversationState
-from src.vectorstore import search
+from src.vectorstore import search, get_collection
 from src.llm import generate_triage_response
 from src.safety import safety_check, check_llm_response
 from src.report import build_report, export_report
@@ -43,14 +43,17 @@ def chat(user_message: str, history: list, state:dict) -> tuple:
     if not safety_check['safe']:
 
         #input is dangerous - return response immediately, dont call llm and no state update
-        history.append([user_message, safety_check['response']])
+        history.append({"role":"user","content":user_message})
+        history.append({"role":"assistant","content":safety_check['response']})
+
         return "", history, state, "", gr.update(visible=False)
     
     #Process the turn through conversation manager
     convo_state, bot_response = process_turn(convo_state, user_message)
 
     #Add the response to history
-    history.append([user_message, bot_response])
+    history.append({"role":"user","content":user_message})
+    history.append({"role":"assistant","content":bot_response})
 
     #Check if we have enough info to generate triage report
     if convo_state.trigger_triage:
@@ -102,7 +105,7 @@ def format_report_for_display(report) -> str:
     a clean readable string for the Gradio UI.
     """
 
-     # Confidence bar — visual representation of confidence score
+    # Confidence bar — visual representation of confidence score
     # Each █ represents 10% confidence
     filled = int(report.confidence_score * 10)
     empty = 10 - filled
@@ -166,15 +169,9 @@ def reset_conversation():
     fresh_state = start_conversation()
 
     # Welcome message
-    welcome = [[
-        None,
-        "👋 Hello! I'm MedTriage, your symptom triage assistant.\n\n"
-        "Please describe your symptoms and I'll help you understand "
-        "how urgently you need medical care.\n\n"
-        "⚠️ Note: I am NOT a doctor. I cannot diagnose conditions "
-        "or prescribe medications. For emergencies, call 112 immediately."
-    ]]
-
+    welcome = [
+    {"role": "assistant", "content": "👋 Hello! I'm MedTriage, your symptom triage assistant.\n\nPlease describe your symptoms and I'll help you understand how urgently you need medical care.\n\n⚠️ Note: I am NOT a doctor. I cannot diagnose conditions or prescribe medications. For emergencies, call 112 immediately."}
+]
     return welcome, fresh_state.__dict__, "", gr.update(visible=False)
 
 
@@ -234,17 +231,12 @@ def build_ui():
                 # Chatbot displays the conversation history
                 # type="messages" uses the newer message format
                 chatbot = gr.Chatbot(
-                    value=[[
-                        None,
-                        "👋 Hello! I'm MedTriage, your symptom triage assistant.\n\n"
-                        "Please describe your symptoms and I'll help you understand "
-                        "how urgently you need medical care.\n\n"
-                        "⚠️ Note: I am NOT a doctor. I cannot diagnose conditions "
-                        "or prescribe medications. For emergencies, call 112 immediately."
-                    ]],
-                    height=400,
-                    label="Conversation"
-                )
+    value=[
+        {"role": "assistant", "content": "👋 Hello! I'm MedTriage, your symptom triage assistant.\n\nPlease describe your symptoms and I'll help you understand how urgently you need medical care.\n\n⚠️ Note: I am NOT a doctor. I cannot diagnose conditions or prescribe medications. For emergencies, call 112 immediately."}
+    ],
+    height=400,
+    label="Conversation",
+)
 
                 # Input row: textbox + send button side by side
                 with gr.Row():
@@ -315,9 +307,7 @@ if __name__ == "__main__":
     print("Starting MedTriage Assistant...")
     print("Loading vectorstore...")
 
-    # Pre-load the embedding model so first query isn't slow
-    from src.vectorstore import load_embedding_model
-    load_embedding_model()
+    get_collection()
 
     print("Vectorstore ready!")
     print("Launching Gradio UI...\n")
