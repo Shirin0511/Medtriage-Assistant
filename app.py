@@ -40,11 +40,11 @@ def chat(user_message: str, history: list, state:dict) -> tuple:
     #Run safety checks
     safety_result = safety_check(user_message)
 
-    if not safety_check['safe']:
+    if not safety_result['safe']:
 
         #input is dangerous - return response immediately, dont call llm and no state update
         history.append({"role":"user","content":user_message})
-        history.append({"role":"assistant","content":safety_check['response']})
+        history.append({"role":"assistant","content":safety_result['response']})
 
         return "", history, state, "", gr.update(visible=False)
     
