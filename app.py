@@ -263,7 +263,8 @@ def build_ui():
                     label="Your Triage Assessment",
                     lines=25,
                     interactive=False,  # user can't edit this
-                    visible=False,      # hidden initially
+                    visible=True,                     # always visible
+                    value="Your triage report will appear here after the consultation is complete.",
                     elem_classes=["report-box"]
                 )
 
