@@ -193,22 +193,34 @@ def check_llm_response(llm_response: str) -> dict:
 
     # These phrases indicate the LLM tried to diagnose despite instructions
     UNSAFE_RESPONSE_PATTERNS = [
-        "you have",
-        "you definitely have",
-        "you are suffering from",
-        "i diagnose",
-        "my diagnosis is",
-        "take this medication",
-        "take this medicine",
-        "i recommend taking",
-        "you should take",
+        # "I diagnose you with X" / "my diagnosis is X"
+    r"\bi\s+diagnose\b",
+    r"\bmy\s+diagnosis\s+is\b",
+    
+    # "you definitely have" — strong claims
+    r"\byou\s+definitely\s+have\b",
+    r"\byou\s+certainly\s+have\b",
+    
+    # "you are suffering from X" — diagnostic claim
+    r"\byou\s+are\s+suffering\s+from\b",
+    
+    # "take Xmg" / "take X tablets" / "take X pills" — dosage prescription
+    r"\btake\s+\d+\s*(mg|ml|g|tablets?|pills?|capsules?|doses?)\b",
+    
+    # "I recommend taking [medication]" — specific prescription
+    r"\bi\s+recommend\s+taking\b",
+    r"\byou\s+should\s+take\s+\d+\b",
+    r"\byou\s+should\s+take\s+(this|the)\s+(medication|medicine|drug)\b",
+
+     # Specific medication recommendations
+    r"\btake\s+(ibuprofen|paracetamol|acetaminophen|aspirin|tylenol|advil)\b"
     ]
 
     response_lower = llm_response.lower()
 
     for pattern in UNSAFE_RESPONSE_PATTERNS:
 
-        if pattern in response_lower:
+        if re.search(pattern, response_lower):
             return {
                 "safe" : False,
                 "response" : (

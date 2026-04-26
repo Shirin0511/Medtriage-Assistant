@@ -71,6 +71,11 @@ def chat(user_message: str, history: list, state:dict) -> tuple:
         #Generate LLM response
         llm_response = generate_triage_response(summary, convo_state.history, rag_results)
 
+        print("=" * 60)             
+        print("RAW LLM RESPONSE:")  
+        print(llm_response)         
+        print("=" * 60)             
+
         #Check LLM output safety
         output_safety = check_llm_response(llm_response)
 

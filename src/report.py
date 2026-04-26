@@ -291,12 +291,31 @@ def build_report(llm_response:str, conversation_summary:dict, rag_results:list) 
     If any field fails validation, Pydantic raises a clear error.
     """
 
+     # === DIAGNOSTIC: see what the parser actually receives ===
+    print("\n" + "=" * 60)
+    print("LLM RESPONSE AS RECEIVED BY build_report:")
+    print(repr(llm_response[:500]))   # repr() reveals hidden characters
+    print("=" * 60 + "\n")
+    # === END DIAGNOSTIC ===
+
+
     # Parse each section of the LLM response
     urgency = parse_urgency(llm_response)
     conditions = parse_possible_conditions(llm_response)
     see_doctor_if = parse_see_doctor_if(llm_response)
     recommended_action = parse_recommended_action(llm_response)
     confidence = calculate_confidence(rag_results, conversation_summary)
+
+    # === DIAGNOSTIC PRINTS ===
+    print("\n" + "=" * 60)
+    print("PARSER OUTPUT:")
+    print(f"  urgency: {urgency}")
+    print(f"  conditions ({len(conditions)}): {conditions}")
+    print(f"  see_doctor_if ({len(see_doctor_if)}): {see_doctor_if}")
+    print(f"  recommended_action: {recommended_action[:100]}...")
+    print(f"  confidence: {confidence}")
+    print("=" * 60 + "\n")
+    # === END DIAGNOSTIC ===
 
     # Build and return the validated Pydantic object
     # Pydantic validates ALL fields automatically when this is called
