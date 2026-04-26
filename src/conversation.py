@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from typing import Optional, List
+import re
 
 
 
@@ -100,18 +101,41 @@ def process_turn(state: ConversationState, user_msg: str):
     # Turn 3 = user just answered "any conditions?" question
 
     if state.turn == 0:
+        # Validate symptoms
+        is_valid, err_msg = validate_symptoms(user_msg)
+
+        if not is_valid:
+            bot_response = err_msg
+            state.history.append({"role":"assistant", "content":bot_response})
+            return state, bot_response
         
         # First message from user — treat it as their symptom description
         state.symptoms.append(user_msg)
         bot_response = FOLLOWUP_QUESTIONS[0] # ask "how long?"
 
     elif state.turn == 1:
+
+        # Validate duration
+        is_valid, err_msg = validate_duration(user_msg)
+
+        if not is_valid:
+            bot_response = err_msg
+            state.history.append({"role":"assistant", "content":bot_response})
+            return state, bot_response
         
         # User answered the duration question
         state.duration = user_msg
         bot_response = FOLLOWUP_QUESTIONS[1] # ask "how severe?"
 
     elif state.turn ==2:
+
+        # Validate severity
+        is_valid, err_msg = validate_severity(user_msg)
+
+        if not is_valid:
+            bot_response = err_msg
+            state.history.append({"role":"assistant", "content":bot_response})
+            return state, bot_response
        
         # User answered the severity question
         state.severity = user_msg
@@ -202,6 +226,74 @@ def get_conversation_summary(state: ConversationState) -> dict:
         "Trigger Triage" : state.trigger_triage
     }
 
+
+# --- Validation helpers ---
+
+def validate_duration(text:str) -> tuple[bool,str]:
+
+    """
+    Checks if the input looks like a plausible duration.
+    Returns (is_valid, error_message).
+    """
+
+    text = text.strip().lower()
+
+    if len(text) < 2:
+        return False, "Please provide a more specific duration (e.g., '2 days', '3 hours', '1 week')."
+
+    # Must contain at least one digit OR a known time word
+    has_digit = bool(re.search(r'\d',text))
+    time_words = ['hour', 'day', 'week', 'month', 'year', 'minute',
+                  'morning', 'evening', 'night', 'yesterday', 'today',
+                  'since', 'few', 'couple', 'several']
+    
+    has_time_word = any(word in text for word in time_words)
+
+    if not(has_digit or has_time_word):
+        return False, (
+            "I couldn't understand that duration. "
+            "Please tell me how long in days, hours, or weeks "
+            "(e.g., '2 days', 'about a week', 'since yesterday')."
+        )
+    
+    return True, ""
+
+
+def validate_severity(text: str) -> tuple[bool, str]:
+
+    """
+    Checks if severity is a number 1-10 or a recognized severity word.
+    Returns (is_valid, error_message).
+    """
+
+    text = text.strip().lower()
+
+    #Extracting a number
+    numbers = re.findall(r'\d',text)
+
+    if numbers:
+        n= int(numbers[0])
+        if 1 <= n <= 10:
+            return True, ""
+        
+        else:
+            return False, "Please provide severity between 1 and 10"
+        
+
+def validate_symptoms(text: str) -> tuple[bool, str]:
+
+    """
+    Basic check that symptoms description is meaningful.
+    """
+
+    if len(text) < 3:
+        return False, "Please describe your symptoms in a bit more detail."
+
+    # Reject if it's just random characters with no vowels (gibberish heuristic)
+    if not re.search(r'[aeiouAEIOU]', text):
+        return False, "I couldn't understand that. Please describe your symptoms in plain words."  
+
+    return True, ""
 
 
 if __name__ == "__main__":
