@@ -271,13 +271,15 @@ def validate_severity(text: str) -> tuple[bool, str]:
     #Extracting a number
     numbers = re.findall(r'\d',text)
 
-    if numbers:
-        n= int(numbers[0])
-        if 1 <= n <= 10:
-            return True, ""
+    if not numbers:
+        return False, "Please provide severity between 1 and 10"
+    
+    n= int(numbers[0])
+    if 1 <= n <= 10:
+        return True, ""
         
-        else:
-            return False, "Please provide severity between 1 and 10"
+    else:
+        return False, "Please provide severity between 1 and 10"
         
 
 def validate_symptoms(text: str) -> tuple[bool, str]:
