@@ -197,15 +197,36 @@ def build_ui():
 
     with gr.Blocks(
         title="MedTriage Assistant",
-        theme=gr.themes.Soft(primary_hue="orange", neutral_hue="slate"),
+        theme=gr.themes.Soft(
+            primary_hue="orange",
+            neutral_hue="slate",
+        ).set(
+            body_background_fill="#0f172a",
+            body_background_fill_dark="#0f172a",
+            background_fill_primary="#1e293b",
+            background_fill_primary_dark="#1e293b",
+            background_fill_secondary="#334155",
+            background_fill_secondary_dark="#334155",
+            block_background_fill="#1e293b",
+            block_background_fill_dark="#1e293b",
+            border_color_primary="#334155",
+            border_color_primary_dark="#334155",
+            body_text_color="#f1f5f9",
+            body_text_color_dark="#f1f5f9",
+            block_label_text_color="#f1f5f9",
+            block_label_text_color_dark="#f1f5f9",
+            block_title_text_color="#f1f5f9",
+            block_title_text_color_dark="#f1f5f9",
+            input_background_fill="#0f172a",
+            input_background_fill_dark="#0f172a",
+        ),
         css="""
-        :root { color-scheme: dark; }
         .report-box {
             font-family: monospace;
             font-size: 14px;
         }
         .disclaimer {
-            color: #888;
+            color: #94a3b8;
             font-size: 12px;
         }
         """
