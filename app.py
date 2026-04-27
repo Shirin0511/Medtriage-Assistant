@@ -229,6 +229,33 @@ def build_ui():
             color: #94a3b8;
             font-size: 12px;
         }
+        
+        /* Catch ALL labels regardless of their container */
+        .gradio-container label,
+        .gradio-container .block-label,
+        .gradio-container .label-wrap,
+        .gradio-container span[data-testid*="label"],
+        .gradio-container .svelte-1gfkn6j,
+        .gradio-container [class*="label"] {
+            background: #1e293b !important;
+            color: #f1f5f9 !important;
+            border-color: #334155 !important;
+        }
+        
+        /* Force text color on everything inside labels */
+        .gradio-container label *,
+        .gradio-container .block-label *,
+        .gradio-container [class*="label"] * {
+            color: #f1f5f9 !important;
+            background: transparent !important;
+        }
+        
+        /* The "New Consultation" button still looks white — fix that too */
+        .gradio-container button[class*="secondary"] {
+            background: #1e293b !important;
+            color: #f1f5f9 !important;
+            border: 1px solid #334155 !important;
+        }
         """
     ) as demo:
 
@@ -240,8 +267,7 @@ def build_ui():
         Describe your symptoms and answer a few questions. 
         I'll help you understand the urgency of your condition.
         
-        > ⚠️ **This tool does not replace professional medical advice.
-        For emergencies, call 112 (India) or 911 (US) immediately.**
+        > ⚠️ **This tool does not replace professional medical advice.**
         """)
 
         # --- State (invisible — stores conversation between turns) ---
@@ -260,7 +286,7 @@ def build_ui():
                 # type="messages" uses the newer message format
                 chatbot = gr.Chatbot(
     value=[
-        {"role": "assistant", "content": "👋 Hello! I'm MedTriage, your symptom triage assistant.\n\nPlease describe your symptoms and I'll help you understand how urgently you need medical care.\n\n⚠️ Note: I am NOT a doctor. I cannot diagnose conditions or prescribe medications. For emergencies, call 112 immediately."}
+        {"role": "assistant", "content": "👋 Hello! I'm MedTriage, your symptom triage assistant.\n\nPlease describe your symptoms and I'll help you understand how urgently you need medical care.\n\n⚠️ Note: I am NOT a doctor. I cannot diagnose conditions or prescribe medications."}
     ],
     height=400,
     label="Conversation",
