@@ -197,8 +197,9 @@ def build_ui():
 
     with gr.Blocks(
         title="MedTriage Assistant",
-        # Custom CSS for a cleaner look
+        theme=gr.themes.Soft(primary_hue="orange", neutral_hue="slate"),
         css="""
+        :root { color-scheme: dark; }
         .report-box {
             font-family: monospace;
             font-size: 14px;
